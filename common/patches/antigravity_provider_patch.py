@@ -392,45 +392,32 @@ def _patch_runtime_provider() -> bool:
 
     def patched_main(*, requested=None, explicit_api_key=None,
                      explicit_base_url=None, target_model=None, **kwargs):
-        from hermes_cli.auth import resolve_provider as _resolve_provider
-        from hermes_cli.runtime_provider import AuthError as _AuthError
-
         requested_provider = str(requested or "").strip().lower()
-        if requested_provider.startswith("custom:"):
+        if requested_provider not in {
+            "google-antigravity",
+            "antigravity",
+            "antigravity-oauth",
+        }:
             return original_main(
                 requested=requested, explicit_api_key=explicit_api_key,
                 explicit_base_url=explicit_base_url, target_model=target_model,
                 **kwargs
             )
 
-        provider = _resolve_provider(
-            requested, explicit_api_key=explicit_api_key,
-            explicit_base_url=explicit_base_url,
-        )
-        if provider == "google-antigravity":
-            try:
-                from hermes_cli.auth import \
-                    resolve_antigravity_oauth_runtime_credentials
-                creds = resolve_antigravity_oauth_runtime_credentials()
-                return {
-                    "provider": "google-antigravity",
-                    "api_mode": "chat_completions",
-                    "base_url": creds.get("base_url", ""),
-                    "api_key": creds.get("api_key", ""),
-                    "source": creds.get("source", "antigravity-oauth"),
-                    "expires_at_ms": creds.get("expires_at_ms"),
-                    "email": creds.get("email", ""),
-                    "project_id": creds.get("project_id", ""),
-                    "requested_provider": requested,
-                }
-            except _AuthError:
-                if requested not in (None, "auto"):
-                    raise
-        return original_main(
-            requested=requested, explicit_api_key=explicit_api_key,
-            explicit_base_url=explicit_base_url, target_model=target_model,
-            **kwargs
-        )
+        from hermes_cli.auth import \
+            resolve_antigravity_oauth_runtime_credentials
+        creds = resolve_antigravity_oauth_runtime_credentials()
+        return {
+            "provider": "google-antigravity",
+            "api_mode": "chat_completions",
+            "base_url": creds.get("base_url", ""),
+            "api_key": creds.get("api_key", ""),
+            "source": creds.get("source", "antigravity-oauth"),
+            "expires_at_ms": creds.get("expires_at_ms"),
+            "email": creds.get("email", ""),
+            "project_id": creds.get("project_id", ""),
+            "requested_provider": requested,
+        }
 
     rp.resolve_runtime_provider = patched_main
     rp._antigravity_runtime_patched = True

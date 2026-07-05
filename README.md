@@ -212,6 +212,10 @@ windows/
   disable-antigravity.ps1
 ```
 
+## 자세한 작동 원리
+
+파일별 역할, hook이 필요한 이유, provider resolver 설계 원칙은 [Architecture Guide](docs/ARCHITECTURE.md)에 정리되어 있습니다.
+
 ## 동작 요약
 
 `common/plugins/model-providers/google-antigravity`는 Hermes provider profile을 등록합니다. 실제 OAuth resolver와 model client 연결은 아직 Hermes plugin hook만으로는 부족해서 `common/sitecustomize_hook.py`가 Hermes module import 시점에 `common/patches/antigravity_provider_patch.py`를 적용합니다.
