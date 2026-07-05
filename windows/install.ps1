@@ -36,6 +36,7 @@ function Write-Utf8NoBom {
 }
 
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$CommonRoot = Join-Path $RepoRoot "common"
 $AgentDir = Join-Path $HermesHome "hermes-agent"
 $VenvCandidates = @(
     (Join-Path $AgentDir "venv"),
@@ -51,8 +52,8 @@ $HermesExe = Join-Path $VenvDir "Scripts\hermes.exe"
 
 Require-File -Path $Python -Name "Hermes Python"
 Require-File -Path $HermesExe -Name "Hermes CLI"
-Require-File -Path (Join-Path $RepoRoot "patches\antigravity_provider_patch.py") -Name "Antigravity patch"
-Require-File -Path (Join-Path $RepoRoot "scripts\sitecustomize_hook.py") -Name "sitecustomize hook"
+Require-File -Path (Join-Path $CommonRoot "patches\antigravity_provider_patch.py") -Name "Antigravity patch"
+Require-File -Path (Join-Path $CommonRoot "sitecustomize_hook.py") -Name "sitecustomize hook"
 
 $AgentRuntimeFiles = @(
     "gemini_cloudcode_adapter.py",
@@ -71,10 +72,10 @@ $ProviderFiles = @(
 )
 
 foreach ($file in $AgentRuntimeFiles) {
-    Require-File -Path (Join-Path $RepoRoot "agent\$file") -Name "Antigravity runtime source"
+    Require-File -Path (Join-Path $CommonRoot "agent\$file") -Name "Antigravity runtime source"
 }
 foreach ($file in $ProviderFiles) {
-    Require-File -Path (Join-Path $RepoRoot "plugins\model-providers\google-antigravity\$file") -Name "Provider metadata source"
+    Require-File -Path (Join-Path $CommonRoot "plugins\model-providers\google-antigravity\$file") -Name "Provider metadata source"
 }
 
 $env:HERMES_HOME = $HermesHome
@@ -100,21 +101,21 @@ Write-Step "VenvDir:    $VenvDir"
 
 Write-Step "copying provider metadata"
 foreach ($file in $ProviderFiles) {
-    Copy-One (Join-Path $RepoRoot "plugins\model-providers\google-antigravity\$file") `
+    Copy-One (Join-Path $CommonRoot "plugins\model-providers\google-antigravity\$file") `
              (Join-Path $HermesHome "plugins\model-providers\google-antigravity\$file")
 }
 
 Write-Step "copying Antigravity runtime files into Hermes checkout"
 foreach ($file in $AgentRuntimeFiles) {
-    Copy-One (Join-Path $RepoRoot "agent\$file") (Join-Path $AgentDir "agent\$file")
+    Copy-One (Join-Path $CommonRoot "agent\$file") (Join-Path $AgentDir "agent\$file")
 }
 
 Write-Step "copying runtime patch outside the Hermes checkout"
-Copy-One (Join-Path $RepoRoot "patches\antigravity_provider_patch.py") `
+Copy-One (Join-Path $CommonRoot "patches\antigravity_provider_patch.py") `
          (Join-Path $HermesHome "patches\antigravity_provider_patch.py")
 
-Write-Step "installing Windows-aware sitecustomize hook"
-$hookSource = Get-Content -Raw -LiteralPath (Join-Path $RepoRoot "scripts\sitecustomize_hook.py")
+Write-Step "installing sitecustomize hook"
+$hookSource = Get-Content -Raw -LiteralPath (Join-Path $CommonRoot "sitecustomize_hook.py")
 $escapedHermesHome = $HermesHome.Replace("\", "\\")
 $oldBlock = @'
 _PATCHES_DIR = os.environ.get(

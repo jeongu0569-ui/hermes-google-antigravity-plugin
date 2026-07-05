@@ -1,6 +1,6 @@
 """Compatibility Google OAuth helper for Hermes versions without agent.google_oauth.
 
-Newer Windows Hermes builds may no longer ship ``agent.google_oauth`` while
+Newer Hermes builds may no longer ship ``agent.google_oauth`` while
 the Antigravity provider still imports it.  This module provides the small
 subset used by ``agent.google_antigravity_oauth``.
 """

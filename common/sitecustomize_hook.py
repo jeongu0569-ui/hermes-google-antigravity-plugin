@@ -1,4 +1,4 @@
-"""Windows Hermes Antigravity import hook.
+"""Hermes Antigravity import hook.
 
 Installed as ``sitecustomize.py`` in the Hermes virtualenv.  It registers
 import hooks that load ``antigravity_provider_patch`` at the points where

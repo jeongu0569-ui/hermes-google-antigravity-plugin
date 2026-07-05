@@ -395,6 +395,14 @@ def _patch_runtime_provider() -> bool:
         from hermes_cli.auth import resolve_provider as _resolve_provider
         from hermes_cli.runtime_provider import AuthError as _AuthError
 
+        requested_provider = str(requested or "").strip().lower()
+        if requested_provider.startswith("custom:"):
+            return original_main(
+                requested=requested, explicit_api_key=explicit_api_key,
+                explicit_base_url=explicit_base_url, target_model=target_model,
+                **kwargs
+            )
+
         provider = _resolve_provider(
             requested, explicit_api_key=explicit_api_key,
             explicit_base_url=explicit_base_url,
