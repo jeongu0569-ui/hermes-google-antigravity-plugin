@@ -407,7 +407,11 @@ def _ensure_validated_tool_config(request: Dict[str, Any]) -> None:
     if isinstance(tool_config, dict):
         fcc = tool_config.setdefault("functionCallingConfig", {})
         if isinstance(fcc, dict):
-            fcc["mode"] = "VALIDATED"
+            # Antigravity's Claude bridge currently rejects VALIDATED tool mode
+            # for ordinary chat turns with the full Hermes tool schema, causing
+            # INVALID_ARGUMENT and a fallback that can drop conversation history.
+            # AUTO keeps tools available while preserving the normal transcript.
+            fcc["mode"] = "AUTO"
 
 def _ensure_claude_tool_call_ids(request: Dict[str, Any]) -> None:
     """Add Gemini function-call IDs required by Antigravity's Claude bridge.
@@ -688,6 +692,7 @@ def _append_system_text(request: Dict[str, Any], text: str, *, prepend: bool = F
         request["systemInstruction"]["role"] = role
 
 def _apply_antigravity_request_transforms(request: Dict[str, Any], *, model: str, thinking_config: Any = None) -> None:
+    is_claude = _is_claude_model(model)
     if "system_instruction" in request and "systemInstruction" not in request:
         request["systemInstruction"] = request.pop("system_instruction")
     request.pop("model", None)
@@ -701,7 +706,7 @@ def _apply_antigravity_request_transforms(request: Dict[str, Any], *, model: str
         extra_body.pop("cachedContent", None)
         if not extra_body:
             request.pop("extra_body", None)
-    if _is_claude_model(model):
+    if is_claude:
         _ensure_validated_tool_config(request)
         _ensure_claude_tool_call_ids(request)
         _strip_orphaned_claude_tool_parts(request)
@@ -734,7 +739,15 @@ def _apply_antigravity_request_transforms(request: Dict[str, Any], *, model: str
     _maybe_enable_google_grounding(request, model=model)
     _append_system_text(request, ANTIGRAVITY_SYSTEM_INSTRUCTION, prepend=True, role="user")
     inject_context_compression(request, model=model)
-    request["sessionId"] = str(request.get("sessionId") or f"-{uuid.uuid4()}")
+    if is_claude:
+        # The Claude bridge rejects Gemini-style request metadata often enough
+        # to trigger fallback retries that lose recent Hermes history. Keep
+        # contents/systemInstruction/tools intact and let Hermes own session
+        # persistence outside the provider-level session id.
+        request.pop("generationConfig", None)
+        request.pop("sessionId", None)
+    else:
+        request["sessionId"] = str(request.get("sessionId") or f"-{uuid.uuid4()}")
 
 def _antigravity_google_one_ai_credits_mode() -> str:
     """How to use Google One AI/Ultra credits for Antigravity requests.

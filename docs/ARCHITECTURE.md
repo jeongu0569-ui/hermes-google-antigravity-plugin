@@ -194,11 +194,23 @@ Antigravity 요청을 실제로 보내는 OpenAI-compatible client입니다.
 - Antigravity model label을 backend model id로 매핑
 - thinking tier 변환
 - Claude/GPT-OSS tool schema 보정
+- Claude bridge용 request metadata 보정
 - Google One AI credit 사용 여부 결정
 - streaming SSE 응답 처리
 - 응답을 OpenAI-compatible 형태로 변환
 
 즉 “Hermes가 아는 모양”과 “Google Antigravity backend가 원하는 모양” 사이의 번역기입니다.
+
+Claude 계열 모델은 Gemini 계열 endpoint wrapper를 통과하지만, 실제 bridge는 Anthropic tool validator와 다른 request metadata 규칙을 함께 사용합니다. 그래서 일반 Gemini 요청처럼 `VALIDATED` tool mode, `generationConfig`, provider-level `sessionId`를 그대로 보내면 `INVALID_ARGUMENT`가 발생할 수 있습니다. 이때 adapter의 fallback retry가 마지막 사용자 메시지 중심으로 줄어들면 Hermes DB에는 `history=2` 이상이 있어도 provider로 전달되는 transcript가 짧아져, 같은 세션의 이전 발화를 기억하지 못하는 것처럼 보일 수 있습니다.
+
+현재 보정은 Claude 요청에만 적용됩니다.
+
+- Hermes tool declarations는 유지합니다.
+- function calling mode는 `AUTO`로 보냅니다.
+- Claude 요청에서는 `generationConfig`와 provider-level `sessionId`를 제거합니다.
+- Hermes 세션 저장과 resume은 Hermes 서버가 계속 담당합니다.
+
+검증 기준은 같은 Hermes session에서 “안녕 내 이름은 ...” 다음 “내 이름이 뭐라고?”를 물었을 때 이름을 기억하고, 로그에 `Antigravity stream HTTP 400 diagnostics` fallback이 새로 발생하지 않는 것입니다.
 
 ### `common/agent/gemini_cloudcode_adapter.py`
 

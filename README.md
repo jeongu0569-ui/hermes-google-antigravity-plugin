@@ -97,6 +97,21 @@ hermes chat --provider google-antigravity -m claude-opus-4-6 -q "OK"
 hermes chat --provider google-antigravity -m gpt-oss-120b -q "OK"
 ```
 
+대화 맥락과 Claude bridge 보정까지 확인하려면 같은 세션에서 두 번 질문합니다.
+
+```bash
+hermes chat --provider google-antigravity -m claude-opus-4-6
+```
+
+예시:
+
+```text
+User: 안녕 내 이름은 한정우야
+Assistant: 안녕하세요, 한정우님...
+User: 내 이름이 뭐라고?
+Assistant: 한정우님이시죠...
+```
+
 macOS 설치 스크립트에서 smoke test까지 실행하려면:
 
 ```bash
@@ -223,6 +238,8 @@ windows/
 요청 실행 시 Hermes는 `google-antigravity`를 `cloudcode-pa://antigravity` provider로 해석하고, `agent.google_antigravity_adapter.GoogleAntigravityClient`가 OpenAI Chat Completions 형태의 요청을 Google Cloud Code PA `v1internal:generateContent` / `streamGenerateContent` 요청으로 변환합니다.
 
 `custom:*` provider는 Antigravity wrapper가 처리하지 않고 Hermes 원래 runtime resolver로 그대로 넘깁니다. 예를 들어 `custom:ollama-local` 같은 named custom provider는 `custom_providers` 설정의 `base_url`과 모델을 기존 Hermes 방식으로 해석합니다.
+
+Claude 계열 모델은 Antigravity bridge가 일반 Gemini request metadata와 tool mode 일부를 거부할 수 있어, adapter가 Claude 요청만 별도로 보정합니다. Hermes tools는 유지하되 function calling mode를 `AUTO`로 낮추고, provider-level `generationConfig` / `sessionId`는 제거해서 `INVALID_ARGUMENT` fallback이 대화 히스토리를 잃어버리는 문제를 피합니다. Hermes 자체 세션 기록은 계속 Hermes가 관리합니다.
 
 필요하면 `/agyquota` 명령으로 Antigravity quota/status를 확인합니다.
 
